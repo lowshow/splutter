@@ -1,9 +1,11 @@
+import { VF, F } from "./common/interfaces"
+
 // TODO: add doc
 export interface Buffer {
     feed: (data: Float32Array) => void
-    stop: () => void
-    init: () => void
-    isRunning: () => boolean
+    stop: VF
+    init: VF
+    isRunning: F<boolean>
 }
 
 // TODO: add doc

@@ -13,9 +13,13 @@ export function getEl({ selector, timeout = 1000 }) {
         requestAnimationFrame((time) => {
             if (time - base >= timeout)
                 return reject();
-            const el = document.querySelector(selector);
-            if (el)
-                return resolve(el);
+            const l = document.querySelector(selector);
+            if (l)
+                return resolve(l);
         });
     });
+}
+// TODO: add doc
+export function el(tagName, options) {
+    return document.createElement(tagName, options);
 }

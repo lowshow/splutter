@@ -23,8 +23,16 @@ export function getEl<T extends HTMLElement>({
         requestAnimationFrame((time: number): void => {
             if (time - base >= timeout) return reject()
 
-            const el: T | null = document.querySelector<T>(selector)
-            if (el) return resolve(el)
+            const l: T | null = document.querySelector<T>(selector)
+            if (l) return resolve(l)
         })
     })
+}
+
+// TODO: add doc
+export function el<K extends keyof HTMLElementTagNameMap>(
+    tagName: K,
+    options?: ElementCreationOptions
+): HTMLElementTagNameMap[K] {
+    return document.createElement(tagName, options)
 }
