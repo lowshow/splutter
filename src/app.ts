@@ -1,30 +1,42 @@
 import { main, Main } from "./main.js"
-import { getEl } from "./common/utils.js"
-import { ui } from "./ui.js"
+import { recorderUI, buttonUI } from "./ui.js"
 import { VF, F } from "./common/interfaces.js"
-
-// TODO: add doc
-function toggleVisible(el: HTMLElement[]): void {
-    el.forEach((i: HTMLElement): void => {
-        i.classList.toggle("visible")
-    })
-}
+import { getEl, emt } from "./common/dom.js"
+import { runAll } from "./common/utils.js"
 
 // TODO: add doc
 ;(async (): Promise<void> => {
     try {
-        const recordBtn: HTMLButtonElement = await getEl<HTMLButtonElement>({
-            selector: "#record"
-        })
-        const stopBtn: HTMLButtonElement = await getEl<HTMLButtonElement>({
-            selector: "#stop"
-        })
-        const runBtn: HTMLButtonElement = await getEl<HTMLButtonElement>({
-            selector: "#run"
+        const buttons: HTMLDivElement = await getEl<HTMLDivElement>({
+            selector: "#buttons"
         })
         const container: HTMLDivElement = await getEl<HTMLDivElement>({
             selector: "#container"
         })
+
+        const onEnd: VF[] = []
+
+        buttonUI(
+            buttons,
+            async (): Promise<void> => {
+                const {
+                    record,
+                    end,
+                    activate,
+                    inChannels,
+                    listen,
+                    outChannels
+                }: Main = await main((): void => {
+                    setUI(inChannels(), outChannels(), activate, listen)
+                })
+                onEnd.push(end)
+                record()
+            },
+            (): void => {
+                runAll(onEnd)
+                emt(container)
+            }
+        )
 
         async function setUI(
             inChannels: number,
@@ -44,7 +56,7 @@ function toggleVisible(el: HTMLElement[]): void {
             const deactivate: VF[] = []
             const mute: VF[] = []
 
-            await ui(
+            await recorderUI(
                 inChannels,
                 outChannels,
                 container,
@@ -68,28 +80,6 @@ function toggleVisible(el: HTMLElement[]): void {
                 }
             )
         }
-
-        runBtn.addEventListener(
-            "click",
-            async (): Promise<void> => {
-                const {
-                    record,
-                    end,
-                    activate,
-                    inChannels,
-                    listen,
-                    outChannels
-                }: Main = await main((): void => {
-                    setUI(inChannels(), outChannels(), activate, listen)
-                })
-                toggleVisible([recordBtn, stopBtn, runBtn])
-                recordBtn.addEventListener("click", record)
-                stopBtn.addEventListener("click", (): void => {
-                    end()
-                    container.innerHTML = ""
-                })
-            }
-        )
     } catch (e) {
         console.error("Application Error", e)
     }

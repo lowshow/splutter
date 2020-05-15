@@ -11,6 +11,7 @@ function encodeUpload(sampleRate) {
         }
     };
 }
+// TODO: add doc
 function streamProcesser(ctx, encode) {
     const biquadFilter = ctx.createBiquadFilter();
     biquadFilter.type = "lowpass";
@@ -111,9 +112,8 @@ export async function main(onGetAudio) {
             output.connect(merger[0], 0, oChan);
             connections[iChan].push(oChan);
         }
-        if (!outputting()) {
+        if (!outputting())
             outOn();
-        }
         function mute() {
             // if there are more than 1 channel
             // just disconnect this channel, remove from list

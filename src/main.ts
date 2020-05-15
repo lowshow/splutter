@@ -29,6 +29,7 @@ interface EncodeUpload {
     encode: EncoderFn
 }
 
+// TODO: add doc
 interface Processor {
     output: AudioNode
     stopRec: VF
@@ -54,6 +55,7 @@ function encodeUpload(sampleRate: number): EncodeUpload {
     }
 }
 
+// TODO: add doc
 function streamProcesser(ctx: AudioContext, encode: EncoderFn): Processor {
     const biquadFilter: BiquadFilterNode = ctx.createBiquadFilter()
     biquadFilter.type = "lowpass"
@@ -186,9 +188,7 @@ export async function main(onGetAudio: VF): Promise<Main> {
             connections[iChan].push(oChan)
         }
 
-        if (!outputting()) {
-            outOn()
-        }
+        if (!outputting()) outOn()
 
         function mute(): void {
             // if there are more than 1 channel
