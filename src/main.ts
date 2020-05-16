@@ -119,6 +119,8 @@ export async function main(onGetAudio: VF): Promise<Main> {
         window.AudioContext || window.webkitAudioContext
     const ctx: AudioContext = new Ctx()
     ctx.suspend()
+    ctx.destination.channelCount = ctx.destination.maxChannelCount
+    ctx.destination.channelInterpretation = "discrete"
 
     const { encode }: EncodeUpload = encodeUpload(ctx.sampleRate)
 
@@ -221,7 +223,7 @@ export async function main(onGetAudio: VF): Promise<Main> {
             connections[i] = []
             splitter.connect(processors[i].input, i, 0)
         }
-        merger.push(ctx.createChannelMerger(source[0].channelCount))
+        merger.push(ctx.createChannelMerger(ctx.destination.channelCount))
         merger[0].connect(ctx.destination)
         onGetAudio()
     }

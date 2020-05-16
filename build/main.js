@@ -57,6 +57,8 @@ export async function main(onGetAudio) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const ctx = new Ctx();
     ctx.suspend();
+    ctx.destination.channelCount = ctx.destination.maxChannelCount;
+    ctx.destination.channelInterpretation = "discrete";
     const { encode } = encodeUpload(ctx.sampleRate);
     const tracks = [];
     const source = [];
@@ -142,7 +144,7 @@ export async function main(onGetAudio) {
             connections[i] = [];
             splitter.connect(processors[i].input, i, 0);
         }
-        merger.push(ctx.createChannelMerger(source[0].channelCount));
+        merger.push(ctx.createChannelMerger(ctx.destination.channelCount));
         merger[0].connect(ctx.destination);
         onGetAudio();
     }
