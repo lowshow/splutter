@@ -1,5 +1,3 @@
-import { Resolve, Reject } from "./interfaces"
-
 // TODO: add doc
 export function randStr(): string {
     return Math.random().toString(36).substr(2)
@@ -11,20 +9,12 @@ export function token(): string {
 }
 
 // TODO: add doc
-export function getEl<T extends HTMLElement>({
-    selector,
-    timeout = 1000
-}: {
-    selector: string
-    timeout?: number
-}): Promise<T> {
-    return new Promise((resolve: Resolve<T>, reject: Reject): void => {
-        const base: number = performance.now()
-        requestAnimationFrame((time: number): void => {
-            if (time - base >= timeout) return reject()
-
-            const el: T | null = document.querySelector<T>(selector)
-            if (el) return resolve(el)
-        })
-    })
+export function runAll<K, A, T extends (args?: A) => K>(
+    fns: T[],
+    args?: A
+): void {
+    while (fns.length) {
+        const fn: T | undefined = fns.pop()
+        if (fn) fn(args)
+    }
 }

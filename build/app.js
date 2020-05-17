@@ -1,30 +1,48 @@
 import { main } from "./main.js";
-import { getEl } from "./common/utils.js";
-// TODO: add doc
-function toggleVisible(el) {
-    el.forEach((i) => {
-        i.classList.toggle("visible");
-    });
-}
-// TODO: add doc
-;
+import { recorderUI, buttonUI } from "./ui.js";
+import { getEl, emt } from "./common/dom.js";
+import { runAll } from "./common/utils.js";
 (async () => {
     try {
-        const recordBtn = await getEl({
-            selector: "#record"
+        const buttons = await getEl({
+            selector: "#buttons"
         });
-        const stopBtn = await getEl({
-            selector: "#stop"
+        const container = await getEl({
+            selector: "#container"
         });
-        const runBtn = await getEl({
-            selector: "#run"
+        const onEnd = [];
+        buttonUI(buttons, async () => {
+            const { record, end, activate, inChannels, listen, outChannels } = await main(() => {
+                setUI(inChannels(), outChannels(), activate, listen);
+            });
+            onEnd.push(end);
+            record();
+        }, () => {
+            runAll(onEnd);
+            emt(container);
         });
-        runBtn.addEventListener("click", () => {
-            const { record, end } = main();
-            toggleVisible([recordBtn, stopBtn, runBtn]);
-            recordBtn.addEventListener("click", record);
-            stopBtn.addEventListener("click", end);
-        });
+        async function setUI(inChannels, outChannels, activate, listen) {
+            const deactivate = [];
+            const mute = [];
+            await recorderUI(inChannels, outChannels, container, (cIn, cOut, mode) => {
+                if (cOut === -1) {
+                    if (mode) {
+                        deactivate[cIn] = activate(cIn).deactivate;
+                    }
+                    else {
+                        deactivate[cIn]();
+                    }
+                }
+                else {
+                    if (mode) {
+                        mute[outChannels * cIn + cOut] = listen(cIn, cOut).mute;
+                    }
+                    else {
+                        mute[outChannels * cIn + cOut]();
+                    }
+                }
+            });
+        }
     }
     catch (e) {
         console.error("Application Error", e);

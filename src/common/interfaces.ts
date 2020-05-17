@@ -12,3 +12,7 @@ export type ValueOf<T> = T[keyof T]
 
 // TODO: add doc
 export type StringObject = { [index: string]: string }
+
+export type F<T> = () => T
+
+export type VF = F<void>

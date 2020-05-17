@@ -2,24 +2,20 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Splutter</title>
-        <style>
-            * {
-                background: black;
-                color: white;
-            }
-            button {
-                display: none;
-            }
-            .visible {
-                display: block;
-            }
-        </style>
+        <link href="main.css" rel="stylesheet" />
     </head>
     <body>
-        <button id="record">record</button>
-        <button id="stop">stop</button>
-        <button id="run" class="visible">run</button>
+        <div class="root">
+            <div class="rootInner">
+                <noscript>
+                    Unfortunately, without JavaScript, you cannot use this page.
+                </noscript>
+                <div id="buttons"></div>
+                <div id="container"></div>
+            </div>
+        </div>
         <script type="module" src="/static/app.js"></script>
     </body>
 </html>
