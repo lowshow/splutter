@@ -8,7 +8,7 @@ function concatTypedArrays(a, b) {
 }
 // TODO: add doc
 export function encodeOgg(sampleRate) {
-    const encodeWorker = new Worker("/vendor/encoderWorker.min.js");
+    const encodeWorker = new Worker("vendor/encoderWorker.min.js");
     const bufferLength = 4096;
     encodeWorker.postMessage({
         command: "init",

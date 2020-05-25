@@ -4,7 +4,7 @@ export interface Upload {
 }
 
 // TODO: add doc
-export function uploadTo(): Upload {
+export function uploadTo(streamAlias: string): Upload {
     return {
         upload: (data: Uint8Array): void => {
             const formData: FormData = new FormData()
@@ -16,7 +16,7 @@ export function uploadTo(): Upload {
 
             formData.append("audio", file)
 
-            fetch("/upload", {
+            fetch(`/upload/${streamAlias}`, {
                 method: "POST",
                 body: formData
             })

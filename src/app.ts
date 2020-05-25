@@ -7,6 +7,10 @@ import { runAll } from "./common/utils.js"
 // TODO: add doc
 ;(async (): Promise<void> => {
     try {
+        const streamAlias: string = window.location.pathname
+            .split("/")
+            .filter((p: string): boolean => !!p)[1]
+
         const buttons: HTMLDivElement = await getEl<HTMLDivElement>({
             selector: "#buttons"
         })
@@ -26,7 +30,7 @@ import { runAll } from "./common/utils.js"
                     inChannels,
                     listen,
                     outChannels
-                }: Main = await main((): void => {
+                }: Main = await main(streamAlias, (): void => {
                     setUI(inChannels(), outChannels(), activate, listen)
                 })
                 onEnd.push(end)
