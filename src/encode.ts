@@ -13,7 +13,7 @@ function concatTypedArrays(a: Uint8Array, b: Uint8Array): Uint8Array {
 export function encodeOgg(
     sampleRate: number
 ): (arrayBuffer: Float32Array) => Promise<Uint8Array> {
-    const encodeWorker: Worker = new Worker("/vendor/encoderWorker.min.js")
+    const encodeWorker: Worker = new Worker("vendor/encoderWorker.min.js")
     const bufferLength: number = 4096
 
     encodeWorker.postMessage({

@@ -4,6 +4,9 @@ import { getEl, emt } from "./common/dom.js";
 import { runAll } from "./common/utils.js";
 (async () => {
     try {
+        const streamAlias = window.location.pathname
+            .split("/")
+            .filter((p) => !!p)[1];
         const buttons = await getEl({
             selector: "#buttons"
         });
@@ -12,7 +15,7 @@ import { runAll } from "./common/utils.js";
         });
         const onEnd = [];
         buttonUI(buttons, async () => {
-            const { record, end, activate, inChannels, listen, outChannels } = await main(() => {
+            const { record, end, activate, inChannels, listen, outChannels } = await main(streamAlias, () => {
                 setUI(inChannels(), outChannels(), activate, listen);
             });
             onEnd.push(end);

@@ -1,11 +1,11 @@
 // TODO: add doc
-export function uploadTo() {
+export function uploadTo(streamAlias) {
     return {
         upload: (data) => {
             const formData = new FormData();
             const file = new File([new Blob([data])], new Date().toISOString() + ".opus");
             formData.append("audio", file);
-            fetch("/upload", {
+            fetch(`/upload/${streamAlias}`, {
                 method: "POST",
                 body: formData
             })

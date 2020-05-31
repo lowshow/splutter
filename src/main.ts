@@ -41,12 +41,12 @@ interface Processor {
 }
 
 // TODO: add doc
-function encodeUpload(sampleRate: number): EncodeUpload {
+function encodeUpload(sampleRate: number, streamAlias: string): EncodeUpload {
     const encoder: (
         arrayBuffer: Float32Array
     ) => Promise<Uint8Array> = encodeOgg(sampleRate)
 
-    const { upload }: Upload = uploadTo()
+    const { upload }: Upload = uploadTo(streamAlias)
 
     return {
         encode: async (segment: Float32Array): Promise<void> => {
@@ -110,8 +110,9 @@ function streamProcesser(ctx: AudioContext, encode: EncoderFn): Processor {
 }
 
 // TODO: add doc
-export async function main(onGetAudio: VF): Promise<Main> {
+export async function main(streamAlias: string, onGetAudio: VF): Promise<Main> {
     if (!navigator.mediaDevices) {
+        // TODO: display this kind of error in UI
         throw Error("No media devices, recording improbable.")
     }
 
@@ -122,7 +123,7 @@ export async function main(onGetAudio: VF): Promise<Main> {
     ctx.destination.channelCount = ctx.destination.maxChannelCount
     ctx.destination.channelInterpretation = "discrete"
 
-    const { encode }: EncodeUpload = encodeUpload(ctx.sampleRate)
+    const { encode }: EncodeUpload = encodeUpload(ctx.sampleRate, streamAlias)
 
     const tracks: MediaStreamTrack[] = []
     const source: MediaStreamAudioSourceNode[] = []

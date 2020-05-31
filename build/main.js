@@ -2,9 +2,9 @@ import { segmentBuffer } from "./buffer.js";
 import { encodeOgg } from "./encode.js";
 import { uploadTo } from "./upload.js";
 // TODO: add doc
-function encodeUpload(sampleRate) {
+function encodeUpload(sampleRate, streamAlias) {
     const encoder = encodeOgg(sampleRate);
-    const { upload } = uploadTo();
+    const { upload } = uploadTo(streamAlias);
     return {
         encode: async (segment) => {
             upload(await encoder(segment));
@@ -50,7 +50,7 @@ function streamProcesser(ctx, encode) {
     };
 }
 // TODO: add doc
-export async function main(onGetAudio) {
+export async function main(streamAlias, onGetAudio) {
     if (!navigator.mediaDevices) {
         throw Error("No media devices, recording improbable.");
     }
@@ -59,7 +59,7 @@ export async function main(onGetAudio) {
     ctx.suspend();
     ctx.destination.channelCount = ctx.destination.maxChannelCount;
     ctx.destination.channelInterpretation = "discrete";
-    const { encode } = encodeUpload(ctx.sampleRate);
+    const { encode } = encodeUpload(ctx.sampleRate, streamAlias);
     const tracks = [];
     const source = [];
     const merger = [];
