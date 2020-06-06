@@ -32,11 +32,11 @@ export async function recorderUI(inputCount, outputCount, container, onEvent) {
         right.classList.add("item__right");
         mnt(row)([left, right]);
         getBox(left, `Upload input channel ${i + 1}`, `i${i}`, (mode) => {
-            onEvent(i, -1, mode);
+            onEvent({ inputChannel: i, mode, outputChannel: -1 });
         });
         for (let o = 0; o < outputCount; o++) {
             getBox(right, `Send to output channel ${o + 1}`, `o${o}i${i}`, (mode) => {
-                onEvent(i, o, mode);
+                onEvent({ inputChannel: i, mode, outputChannel: o });
             });
         }
     }

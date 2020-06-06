@@ -1,5 +1,5 @@
 import { main, Main } from "./main.js"
-import { recorderUI, buttonUI } from "./ui.js"
+import { recorderUI, buttonUI, ToggleFnArgs } from "./ui.js"
 import { VF, F } from "./common/interfaces.js"
 import { getEl, emt } from "./common/dom.js"
 import { runAll } from "./common/utils.js"
@@ -50,10 +50,10 @@ import { runAll } from "./common/utils.js"
             ) => {
                 deactivate: F<void>
             },
-            listen: (
-                iChan: number,
-                oChan: number
-            ) => {
+            listen: (args: {
+                inputChannel: number
+                outputChannel: number
+            }) => {
                 mute: F<void>
             }
         ): Promise<void> {
@@ -64,21 +64,25 @@ import { runAll } from "./common/utils.js"
                 inChannels,
                 outChannels,
                 container,
-                (cIn: number, cOut: number, mode: boolean): void => {
-                    if (cOut === -1) {
+                ({ inputChannel, mode, outputChannel }: ToggleFnArgs): void => {
+                    if (outputChannel === -1) {
                         if (mode) {
-                            deactivate[cIn] = activate(cIn).deactivate
+                            deactivate[inputChannel] = activate(
+                                inputChannel
+                            ).deactivate
                         } else {
-                            deactivate[cIn]()
+                            deactivate[inputChannel]()
                         }
                     } else {
                         if (mode) {
-                            mute[outChannels * cIn + cOut] = listen(
-                                cIn,
-                                cOut
-                            ).mute
+                            mute[
+                                outChannels * inputChannel + outputChannel
+                            ] = listen({
+                                inputChannel,
+                                outputChannel
+                            }).mute
                         } else {
-                            mute[outChannels * cIn + cOut]()
+                            mute[outChannels * inputChannel + outputChannel]()
                         }
                     }
                 }

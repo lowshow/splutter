@@ -1,6 +1,7 @@
 import { segmentBuffer } from "./buffer.js";
 import { encodeOgg } from "./encode.js";
 import { uploadTo } from "./upload.js";
+import { initState } from "./state.js";
 // TODO: add doc
 function encodeUpload(sampleRate, streamAlias) {
     const encoder = encodeOgg(sampleRate);
@@ -21,7 +22,9 @@ function streamProcesser(ctx, encode) {
     const recorder = ctx.createScriptProcessor(bufferSize, 1, 1);
     biquadFilter.connect(recorder);
     const { feed, isRunning, init, stop } = segmentBuffer(ctx.sampleRate, bufferSize, encode);
-    let output = false;
+    const state = {
+        output: false
+    };
     recorder.onaudioprocess = (event) => {
         /**
          * chrome and safari reuse the buffer, so it needs to be copied
@@ -29,29 +32,129 @@ function streamProcesser(ctx, encode) {
         const data = Float32Array.from(event.inputBuffer.getChannelData(0));
         if (isRunning())
             feed(data);
-        if (output)
+        if (state.output)
             event.outputBuffer.getChannelData(0).set(data);
     };
     return {
         output: recorder,
-        stopRec: () => {
-            stop();
-            output = false;
-        },
+        stopRec: stop,
         input: biquadFilter,
         startRec: init,
         outOn: () => {
-            output = true;
+            state.output = true;
         },
         outOff: () => {
-            output = false;
+            state.output = false;
         },
-        outputting: () => output
+        outputting: () => state.output,
+        recording: () => isRunning()
     };
+}
+function stopChannelStream({ channel, getState, updateState }) {
+    const { processors, connections, merger } = getState();
+    const { output: dOutput, outputting, stopRec } = processors[channel];
+    stopRec();
+    if (!outputting()) {
+        const newConn = [...connections];
+        for (const chan of newConn[channel]) {
+            dOutput.disconnect(merger[0], 0, chan);
+        }
+        newConn[channel] = [];
+        updateState({ connections: newConn });
+    }
+}
+// toggles recording of channel
+function streamChannel({ channel, getState, updateState }) {
+    const { processors, connections, merger } = getState();
+    const { output, startRec, recording } = processors[channel];
+    // we are already recording
+    if (recording())
+        return { deactivate: () => { } };
+    // output needs a destination
+    // check if channel has current output channels
+    if (connections[channel].length === 0) {
+        output.connect(merger[0], 0, 0);
+        const newConn = [...connections];
+        newConn[channel].push(0);
+        updateState({ connections: newConn });
+    }
+    startRec();
+    return {
+        deactivate: () => stopChannelStream({ channel, getState, updateState })
+    };
+}
+function muteOutput({ inputChannel, outputChannel, getState, updateState }) {
+    const { connections, merger, processors } = getState();
+    const { output, outOff, recording } = processors[inputChannel];
+    // if there are more than 1 channel
+    // just disconnect this channel, remove from list
+    // if not, turn off outputting
+    if (!recording() || connections[inputChannel].length > 1) {
+        output.disconnect(merger[0], 0, outputChannel);
+        const newConn = [...connections];
+        newConn[inputChannel].splice(connections[inputChannel].indexOf(outputChannel), 1);
+        updateState({ connections: newConn });
+        if (!connections[inputChannel].length) {
+            outOff();
+        }
+    }
+    else if (recording() && connections[inputChannel].length === 1) {
+        outOff();
+    }
+}
+// toggles output of channel
+function sendToOutput({ inputChannel, outputChannel, getState, updateState }) {
+    const { processors, connections, merger } = getState();
+    const { output, outOn, outputting } = processors[inputChannel];
+    const newConn = [...connections];
+    // ensure buffer is outputting
+    if (!outputting() && connections[inputChannel].length) {
+        const chan = newConn[inputChannel];
+        for (const c of chan) {
+            if (c !== outputChannel)
+                output.disconnect(merger[0], 0, c);
+        }
+        if (chan.indexOf(outputChannel) === -1) {
+            output.connect(merger[0], 0, outputChannel);
+        }
+        newConn[inputChannel] = [outputChannel];
+        updateState({ connections: newConn });
+    }
+    else if (connections[inputChannel].indexOf(outputChannel) === -1) {
+        // if not already outputting to channel, output to channel
+        output.connect(merger[0], 0, outputChannel);
+        newConn[inputChannel].push(outputChannel);
+        updateState({ connections: newConn });
+    }
+    if (!outputting())
+        outOn();
+    return {
+        mute: () => muteOutput({ getState, inputChannel, outputChannel, updateState })
+    };
+}
+async function initRecording({ ctx, handleInput }) {
+    /**
+     * Safari doesn't auto-start context
+     */
+    ctx.resume();
+    await navigator.mediaDevices
+        .getUserMedia({
+        audio: {
+            autoGainControl: false,
+            echoCancellation: false,
+            noiseSuppression: false
+        },
+        video: false
+    })
+        .then(handleInput)
+        .catch((err) => {
+        console.log("The following error occurred: " + err);
+    });
 }
 // TODO: add doc
 export async function main(streamAlias, onGetAudio) {
     if (!navigator.mediaDevices) {
+        // TODO: display this kind of error in UI
         throw Error("No media devices, recording improbable.");
     }
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -60,132 +163,62 @@ export async function main(streamAlias, onGetAudio) {
     ctx.destination.channelCount = ctx.destination.maxChannelCount;
     ctx.destination.channelInterpretation = "discrete";
     const { encode } = encodeUpload(ctx.sampleRate, streamAlias);
-    const tracks = [];
-    const source = [];
-    const merger = [];
-    const processors = [];
-    const connections = [];
-    // toggles recording of channel
-    function activate(channel) {
-        const { output, stopRec, outputting, startRec } = processors[channel];
-        // we are already recording
-        if (!outputting() && connections[channel].length)
-            return { deactivate: () => { } };
-        // output needs a destination
-        // check if channel has current output channels
-        if (connections[channel].length === 0) {
-            output.connect(merger[0], 0, 0);
-            connections[channel].push(0);
-        }
-        startRec();
-        function deactivate() {
-            stopRec();
-            if (!outputting()) {
-                while (connections[channel].length) {
-                    const chan = connections[channel].pop();
-                    if (chan !== undefined)
-                        output.disconnect(merger[0], 0, chan);
-                }
-            }
-        }
-        return {
-            deactivate
-        };
-    }
-    // toggles output of channel
-    function listen(iChan, oChan) {
-        const { output, outOn, outputting, outOff } = processors[iChan];
-        // ensure buffer is outputting
-        if (!outputting() && connections[iChan].length) {
-            // is recording but not outputting
-            // need to make sure our connections are
-            // correct, then run outputter
-            const old = connections[iChan].splice(0, connections[iChan].length, oChan);
-            old.forEach((c) => {
-                if (c !== oChan)
-                    output.disconnect(merger[0], 0, c);
-            });
-            if (old.indexOf(oChan) === -1) {
-                output.connect(merger[0], 0, oChan);
-            }
-        }
-        else if (connections[iChan].indexOf(oChan) === -1) {
-            // if not already outputting to channel, output to channel
-            output.connect(merger[0], 0, oChan);
-            connections[iChan].push(oChan);
-        }
-        if (!outputting())
-            outOn();
-        function mute() {
-            // if there are more than 1 channel
-            // just disconnect this channel, remove from list
-            // if not, turn off outputting
-            if (connections[iChan].length) {
-                output.disconnect(merger[0], 0, oChan);
-                connections[iChan].splice(connections[iChan].indexOf(oChan), 1);
-            }
-            else {
-                outOff();
-            }
-        }
-        return {
-            mute
-        };
-    }
+    const { getState, updateState } = initState({
+        tracks: [],
+        source: [],
+        merger: [],
+        processors: [],
+        connections: []
+    });
     async function handleInput(stream) {
+        const tracks = [];
         stream.getAudioTracks().forEach((track) => {
             tracks.push(track);
         });
+        const source = [];
         source.push(ctx.createMediaStreamSource(stream));
         const splitter = ctx.createChannelSplitter(source[0].channelCount);
         source[0].connect(splitter);
+        const processors = [];
+        const connections = [];
         for (let i = 0; i < source[0].channelCount; i++) {
             processors[i] = streamProcesser(ctx, encode);
             connections[i] = [];
             splitter.connect(processors[i].input, i, 0);
         }
+        const merger = [];
         merger.push(ctx.createChannelMerger(ctx.destination.channelCount));
         merger[0].connect(ctx.destination);
+        updateState({
+            tracks,
+            source,
+            processors,
+            connections,
+            merger
+        });
         onGetAudio();
     }
-    async function record() {
-        /**
-         * Safari doesn't auto-start context
-         */
-        ctx.resume();
-        await navigator.mediaDevices
-            .getUserMedia({
-            audio: {
-                autoGainControl: false,
-                echoCancellation: false,
-                noiseSuppression: false
-            },
-            video: false
-        })
-            .then(handleInput)
-            .catch((err) => {
-            console.log("The following error occurred: " + err);
-        });
-    }
-    function end() {
-        var _a, _b;
-        source.pop();
-        merger.pop();
-        while (processors.length) {
-            (_a = processors.pop()) === null || _a === void 0 ? void 0 : _a.stopRec();
-            connections.pop();
-        }
-        ctx.suspend();
-        while (tracks.length) {
-            (_b = tracks.pop()) === null || _b === void 0 ? void 0 : _b.stop();
-        }
-    }
     return {
-        record,
-        end,
-        inChannels: () => source[0].channelCount || 0,
+        record: () => initRecording({ ctx, handleInput }),
+        end: () => {
+            const { processors, tracks } = getState();
+            for (const p of processors) {
+                p.stopRec();
+            }
+            for (const t of tracks) {
+                t.stop();
+            }
+            updateState({
+                source: [],
+                merger: [],
+                processors: [],
+                connections: [],
+                tracks: []
+            });
+        },
+        inChannels: () => getState().source[0].channelCount || 0,
         outChannels: () => ctx.destination.channelCount || 0,
-        activate,
-        listen
+        activate: (channel) => streamChannel({ getState, channel, updateState }),
+        listen: (args) => sendToOutput(Object.assign(Object.assign({}, args), { getState, updateState }))
     };
 }

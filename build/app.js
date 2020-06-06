@@ -27,21 +27,24 @@ import { runAll } from "./common/utils.js";
         async function setUI(inChannels, outChannels, activate, listen) {
             const deactivate = [];
             const mute = [];
-            await recorderUI(inChannels, outChannels, container, (cIn, cOut, mode) => {
-                if (cOut === -1) {
+            await recorderUI(inChannels, outChannels, container, ({ inputChannel, mode, outputChannel }) => {
+                if (outputChannel === -1) {
                     if (mode) {
-                        deactivate[cIn] = activate(cIn).deactivate;
+                        deactivate[inputChannel] = activate(inputChannel).deactivate;
                     }
                     else {
-                        deactivate[cIn]();
+                        deactivate[inputChannel]();
                     }
                 }
                 else {
                     if (mode) {
-                        mute[outChannels * cIn + cOut] = listen(cIn, cOut).mute;
+                        mute[outChannels * inputChannel + outputChannel] = listen({
+                            inputChannel,
+                            outputChannel
+                        }).mute;
                     }
                     else {
-                        mute[outChannels * cIn + cOut]();
+                        mute[outChannels * inputChannel + outputChannel]();
                     }
                 }
             });

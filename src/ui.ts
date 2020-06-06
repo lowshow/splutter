@@ -1,11 +1,12 @@
 import { el, mnt, lstn, umnt, MntFn } from "./common/dom.js"
 
 // TODO: add doc
-export type ToggleFn = (
-    cIn: number,
-    cOut: number, // -1 input toggle
+export interface ToggleFnArgs {
+    inputChannel: number
+    outputChannel: number // -1 input toggle
     mode: boolean
-) => void
+}
+export type ToggleFn = (args: ToggleFnArgs) => void
 
 // TODO: add doc
 function getBox(
@@ -55,7 +56,7 @@ export async function recorderUI(
             `Upload input channel ${i + 1}`,
             `i${i}`,
             (mode: boolean): void => {
-                onEvent(i, -1, mode)
+                onEvent({ inputChannel: i, mode, outputChannel: -1 })
             }
         )
 
@@ -65,7 +66,7 @@ export async function recorderUI(
                 `Send to output channel ${o + 1}`,
                 `o${o}i${i}`,
                 (mode: boolean): void => {
-                    onEvent(i, o, mode)
+                    onEvent({ inputChannel: i, mode, outputChannel: o })
                 }
             )
         }
