@@ -46,8 +46,7 @@ button:hover {
     border: 2px solid white;
     width: 100%;
 }
-.item__left,
-.item__right {
+.item__wrap {
     display: flex;
     flex-wrap: wrap;
 }
@@ -70,9 +69,25 @@ button:hover {
     position: absolute;
     right: 1rem;
 }
-.item__right .item__check:checked + .item__label {
+.item__grey .item__check:checked + .item__label {
     background: #273c3c;
 }
-.item__left .item__check:checked + .item__label {
+.item__red .item__check:checked + .item__label {
     background: #720f15;
+}
+
+select {
+    background: black;
+    color: white;
+    font-size: 1rem;
+    height: 5rem;
+}
+
+option {
+    padding: 0.5rem 0.2rem;
+}
+
+option:disabled {
+    color: #999;
+    background: #444;
 }

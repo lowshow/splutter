@@ -1,4 +1,4 @@
-import { Resolve } from "./common/interfaces"
+import { Resolve } from "./interfaces"
 
 // a, b TypedArray of same type
 // TODO: add doc

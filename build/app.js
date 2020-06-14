@@ -1,12 +1,9 @@
 import { main } from "./main.js";
 import { recorderUI, buttonUI } from "./ui.js";
-import { getEl, emt } from "./common/dom.js";
-import { runAll } from "./common/utils.js";
+import { getEl, emt } from "./dom.js";
+import { runAll } from "./utils.js";
 (async () => {
     try {
-        const streamAlias = window.location.pathname
-            .split("/")
-            .filter((p) => !!p)[1];
         const buttons = await getEl({
             selector: "#buttons"
         });
@@ -14,37 +11,53 @@ import { runAll } from "./common/utils.js";
             selector: "#container"
         });
         const onEnd = [];
-        buttonUI(buttons, async () => {
-            const { record, end, activate, inChannels, listen, outChannels } = await main(streamAlias, () => {
-                setUI(inChannels(), outChannels(), activate, listen);
-            });
-            onEnd.push(end);
-            record();
-        }, () => {
-            runAll(onEnd);
-            emt(container);
+        buttonUI({
+            container: buttons,
+            onInit: async () => {
+                const { record, end, activate, inChannels, listen, outChannels, state } = await main(() => {
+                    setUI({
+                        state,
+                        inChannels: inChannels(),
+                        outChannels: outChannels(),
+                        activate,
+                        listen
+                    });
+                });
+                onEnd.push(end);
+                record();
+            },
+            onStop: () => {
+                runAll(onEnd);
+                emt(container);
+            }
         });
-        async function setUI(inChannels, outChannels, activate, listen) {
+        async function setUI({ activate, inChannels, listen, outChannels, state }) {
             const deactivate = [];
             const mute = [];
-            await recorderUI(inChannels, outChannels, container, ({ inputChannel, mode, outputChannel }) => {
-                if (outputChannel === -1) {
-                    if (mode) {
-                        deactivate[inputChannel] = activate(inputChannel).deactivate;
+            await recorderUI({
+                state,
+                container,
+                inputCount: inChannels,
+                outputCount: outChannels,
+                onEvent: ({ inputChannel, mode, outputChannel }) => {
+                    if (outputChannel === -1) {
+                        if (mode) {
+                            deactivate[inputChannel] = activate(inputChannel).deactivate;
+                        }
+                        else {
+                            deactivate[inputChannel]();
+                        }
                     }
                     else {
-                        deactivate[inputChannel]();
-                    }
-                }
-                else {
-                    if (mode) {
-                        mute[outChannels * inputChannel + outputChannel] = listen({
-                            inputChannel,
-                            outputChannel
-                        }).mute;
-                    }
-                    else {
-                        mute[outChannels * inputChannel + outputChannel]();
+                        if (mode) {
+                            mute[outChannels * inputChannel + outputChannel] = listen({
+                                inputChannel,
+                                outputChannel
+                            }).mute;
+                        }
+                        else {
+                            mute[outChannels * inputChannel + outputChannel]();
+                        }
                     }
                 }
             });

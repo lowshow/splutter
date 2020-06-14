@@ -1,4 +1,7 @@
-import { el, mnt, lstn, umnt, MntFn } from "./common/dom.js"
+import { el, mnt, lstn, umnt, MntFn, emt } from "./dom.js"
+import { SFn, State, StreamUse } from "./interfaces.js"
+import { onDiff } from "./state.js"
+import { streamsSel, streamingSel } from "./selectors.js"
 
 // TODO: add doc
 export interface ToggleFnArgs {
@@ -9,82 +12,219 @@ export interface ToggleFnArgs {
 export type ToggleFn = (args: ToggleFnArgs) => void
 
 // TODO: add doc
-function getBox(
-    appendTo: HTMLElement,
-    labelText: string,
-    id: string,
+function getBox({
+    appendTo,
+    id,
+    labelText,
+    onChange
+}: {
+    appendTo: HTMLElement
+    labelText: string
+    id: string
     onChange: (mode: boolean) => void
-): void {
-    const box: HTMLDivElement = el("div")
-    box.classList.add("item__box")
+}): void {
+    const box: HTMLDivElement = el("div", { attr: { className: "item__box" } })
     mnt(appendTo)(box)
-    const check: HTMLInputElement = el("input")
-    check.type = "checkbox"
-    check.classList.add("item__check")
-    check.id = id
-    mnt(box)(check)
-    check.addEventListener("change", (): void => {
-        onChange(check.checked)
+
+    const check: HTMLInputElement = el("input", {
+        attr: { type: "checkbox", className: "item__check", id }
     })
-    const title: HTMLLabelElement = el("label")
-    title.textContent = labelText
-    title.classList.add("item__label")
-    title.htmlFor = id
-    mnt(box)(title)
+    lstn(check)
+        .on("change")
+        .do((): void => {
+            onChange(check.checked)
+        })
+
+    const title: HTMLLabelElement = el("label", {
+        attr: { textContent: labelText, className: "item__label", htmlFor: id }
+    })
+
+    mnt(box)([check, title])
+}
+
+interface Options {
+    selected: boolean
+    disabled: boolean
+}
+
+function optionsGen({
+    streams,
+    streamsInUse,
+    channel
+}: {
+    streams: string[]
+    streamsInUse: StreamUse
+    channel: number
+}): HTMLOptionElement[] {
+    return streams.reduce(
+        (arr: HTMLOptionElement[], stream: string): HTMLOptionElement[] => {
+            const attr: Options = Object.entries(streamsInUse).reduce(
+                (obj: Options, [c, s]: [string, string[]]): Options => {
+                    if (c === `${channel}`) {
+                        s.forEach((cs: string): void => {
+                            if (cs === stream) {
+                                obj.selected = true
+                            }
+                        })
+                    } else {
+                        s.forEach((cs: string): void => {
+                            if (cs === stream) {
+                                obj.disabled = true
+                            }
+                        })
+                    }
+                    return obj
+                },
+                { disabled: false, selected: false }
+            )
+            arr.push(
+                el("option", {
+                    attr: { value: stream, textContent: stream, ...attr }
+                })
+            )
+            return arr
+        },
+        [] as HTMLOptionElement[]
+    )
 }
 
 // TODO: add doc
-export async function recorderUI(
-    inputCount: number,
-    outputCount: number,
-    container: HTMLElement,
+export async function recorderUI({
+    container,
+    inputCount,
+    onEvent,
+    outputCount,
+    state: { getState, subscribe, updateState }
+}: {
+    inputCount: number
+    outputCount: number
+    container: HTMLElement
     onEvent: ToggleFn
-): Promise<void> {
+    state: SFn
+}): Promise<void> {
     // row per input
     // make titles labels, emit events on label clicks with details, call arg fn
     for (let i: number = 0; i < inputCount; i++) {
-        const row: HTMLDivElement = el("div")
-        row.classList.add("item__row")
-        mnt(container)(row)
-        const left: HTMLDivElement = el("div")
-        left.classList.add("item__left")
-        const right: HTMLDivElement = el("div")
-        right.classList.add("item__right")
-        mnt(row)([left, right])
-        getBox(
-            left,
-            `Upload input channel ${i + 1}`,
-            `i${i}`,
-            (mode: boolean): void => {
-                onEvent({ inputChannel: i, mode, outputChannel: -1 })
-            }
+        const select: HTMLSelectElement = el("select", {
+            attr: { multiple: true }
+        })
+        const mntSel: MntFn<HTMLSelectElement> = mnt(select)
+        lstn(select)
+            .on("change")
+            .do((): void => {
+                const selected: string[] = []
+                for (
+                    let sel: number = 0;
+                    sel < select.selectedOptions.length;
+                    sel++
+                ) {
+                    const option:
+                        | string
+                        | undefined = select.selectedOptions.item(sel)?.value
+                    if (option) selected.push(option)
+                }
+                updateState({
+                    streamsInUse: {
+                        ...streamingSel(getState()),
+                        [i]: selected
+                    }
+                })
+            })
+
+        const state: State = getState()
+        mntSel(
+            optionsGen({
+                streams: streamsSel(state),
+                streamsInUse: streamingSel(state),
+                channel: i
+            })
         )
 
+        subscribe((previous: State): void => {
+            const current: State = getState()
+            onDiff({
+                current,
+                previous,
+                selector: streamsSel
+            }).do((streams: string[]): void => {
+                emt(select)
+                mntSel(
+                    optionsGen({
+                        streams,
+                        streamsInUse: streamingSel(current),
+                        channel: i
+                    })
+                )
+            })
+            onDiff({
+                current,
+                previous,
+                selector: streamingSel
+            }).do((streamsInUse: StreamUse): void => {
+                emt(select)
+                mntSel(
+                    optionsGen({
+                        streams: streamsSel(current),
+                        streamsInUse,
+                        channel: i
+                    })
+                )
+            })
+        })
+
+        const inputWrap: HTMLDivElement = el("div", {
+            attr: { className: "item__wrap item__red" }
+        })
+        const outputWrap: HTMLDivElement = el("div", {
+            attr: { className: "item__wrap item__grey" }
+        })
+
+        mnt(container)(
+            mnt(el("div", { attr: { className: "item__row" } }))([
+                select,
+                inputWrap,
+                outputWrap
+            ])
+        )
+
+        getBox({
+            appendTo: inputWrap,
+            id: `i${i}`,
+            labelText: `Upload input channel ${i + 1}`,
+            onChange: (mode: boolean): void => {
+                onEvent({ inputChannel: i, mode, outputChannel: -1 })
+            }
+        })
+
         for (let o: number = 0; o < outputCount; o++) {
-            getBox(
-                right,
-                `Send to output channel ${o + 1}`,
-                `o${o}i${i}`,
-                (mode: boolean): void => {
+            getBox({
+                appendTo: outputWrap,
+                id: `o${o}i${i}`,
+                labelText: `Send to output channel ${o + 1}`,
+                onChange: (mode: boolean): void => {
                     onEvent({ inputChannel: i, mode, outputChannel: o })
                 }
-            )
+            })
         }
     }
 }
 
 // TODO: add doc
-export function buttonUI(
-    container: HTMLElement,
-    onInit: () => void,
+export function buttonUI({
+    container,
+    onInit,
+    onStop
+}: {
+    container: HTMLElement
+    onInit: () => void
     onStop: () => void
-): void {
-    const initBtn: HTMLButtonElement = el("button")
-    initBtn.textContent = "Start stream"
-    const push: MntFn = mnt(container)
+}): void {
+    const initBtn: HTMLButtonElement = el("button", {
+        attr: { textContent: "Activate inputs" }
+    })
+
+    const push: MntFn<HTMLElement> = mnt(container)
     push(initBtn)
-    const stopBtn: HTMLButtonElement = el("button")
-    stopBtn.textContent = "Stop stream"
 
     lstn(initBtn)
         .on("click")
@@ -93,6 +233,10 @@ export function buttonUI(
             umnt(initBtn)
             push(stopBtn)
         })
+
+    const stopBtn: HTMLButtonElement = el("button", {
+        attr: { textContent: "Deactivate" }
+    })
 
     lstn(stopBtn)
         .on("click")

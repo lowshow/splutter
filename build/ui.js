@@ -1,60 +1,151 @@
-import { el, mnt, lstn, umnt } from "./common/dom.js";
+import { el, mnt, lstn, umnt, emt } from "./dom.js";
+import { onDiff } from "./state.js";
+import { streamsSel, streamingSel } from "./selectors.js";
 // TODO: add doc
-function getBox(appendTo, labelText, id, onChange) {
-    const box = el("div");
-    box.classList.add("item__box");
+function getBox({ appendTo, id, labelText, onChange }) {
+    const box = el("div", { attr: { className: "item__box" } });
     mnt(appendTo)(box);
-    const check = el("input");
-    check.type = "checkbox";
-    check.classList.add("item__check");
-    check.id = id;
-    mnt(box)(check);
-    check.addEventListener("change", () => {
+    const check = el("input", {
+        attr: { type: "checkbox", className: "item__check", id }
+    });
+    lstn(check)
+        .on("change")
+        .do(() => {
         onChange(check.checked);
     });
-    const title = el("label");
-    title.textContent = labelText;
-    title.classList.add("item__label");
-    title.htmlFor = id;
-    mnt(box)(title);
+    const title = el("label", {
+        attr: { textContent: labelText, className: "item__label", htmlFor: id }
+    });
+    mnt(box)([check, title]);
+}
+function optionsGen({ streams, streamsInUse, channel }) {
+    return streams.reduce((arr, stream) => {
+        const attr = Object.entries(streamsInUse).reduce((obj, [c, s]) => {
+            if (c === `${channel}`) {
+                s.forEach((cs) => {
+                    if (cs === stream) {
+                        obj.selected = true;
+                    }
+                });
+            }
+            else {
+                s.forEach((cs) => {
+                    if (cs === stream) {
+                        obj.disabled = true;
+                    }
+                });
+            }
+            return obj;
+        }, { disabled: false, selected: false });
+        arr.push(el("option", {
+            attr: Object.assign({ value: stream, textContent: stream }, attr)
+        }));
+        return arr;
+    }, []);
 }
 // TODO: add doc
-export async function recorderUI(inputCount, outputCount, container, onEvent) {
+export async function recorderUI({ container, inputCount, onEvent, outputCount, state: { getState, subscribe, updateState } }) {
     // row per input
     // make titles labels, emit events on label clicks with details, call arg fn
     for (let i = 0; i < inputCount; i++) {
-        const row = el("div");
-        row.classList.add("item__row");
-        mnt(container)(row);
-        const left = el("div");
-        left.classList.add("item__left");
-        const right = el("div");
-        right.classList.add("item__right");
-        mnt(row)([left, right]);
-        getBox(left, `Upload input channel ${i + 1}`, `i${i}`, (mode) => {
-            onEvent({ inputChannel: i, mode, outputChannel: -1 });
+        const select = el("select", {
+            attr: { multiple: true }
+        });
+        const mntSel = mnt(select);
+        lstn(select)
+            .on("change")
+            .do(() => {
+            var _a;
+            const selected = [];
+            for (let sel = 0; sel < select.selectedOptions.length; sel++) {
+                const option = (_a = select.selectedOptions.item(sel)) === null || _a === void 0 ? void 0 : _a.value;
+                if (option)
+                    selected.push(option);
+            }
+            updateState({
+                streamsInUse: Object.assign(Object.assign({}, streamingSel(getState())), { [i]: selected })
+            });
+        });
+        const state = getState();
+        mntSel(optionsGen({
+            streams: streamsSel(state),
+            streamsInUse: streamingSel(state),
+            channel: i
+        }));
+        subscribe((previous) => {
+            const current = getState();
+            onDiff({
+                current,
+                previous,
+                selector: streamsSel
+            }).do((streams) => {
+                emt(select);
+                mntSel(optionsGen({
+                    streams,
+                    streamsInUse: streamingSel(current),
+                    channel: i
+                }));
+            });
+            onDiff({
+                current,
+                previous,
+                selector: streamingSel
+            }).do((streamsInUse) => {
+                emt(select);
+                mntSel(optionsGen({
+                    streams: streamsSel(current),
+                    streamsInUse,
+                    channel: i
+                }));
+            });
+        });
+        const inputWrap = el("div", {
+            attr: { className: "item__wrap item__red" }
+        });
+        const outputWrap = el("div", {
+            attr: { className: "item__wrap item__grey" }
+        });
+        mnt(container)(mnt(el("div", { attr: { className: "item__row" } }))([
+            select,
+            inputWrap,
+            outputWrap
+        ]));
+        getBox({
+            appendTo: inputWrap,
+            id: `i${i}`,
+            labelText: `Upload input channel ${i + 1}`,
+            onChange: (mode) => {
+                onEvent({ inputChannel: i, mode, outputChannel: -1 });
+            }
         });
         for (let o = 0; o < outputCount; o++) {
-            getBox(right, `Send to output channel ${o + 1}`, `o${o}i${i}`, (mode) => {
-                onEvent({ inputChannel: i, mode, outputChannel: o });
+            getBox({
+                appendTo: outputWrap,
+                id: `o${o}i${i}`,
+                labelText: `Send to output channel ${o + 1}`,
+                onChange: (mode) => {
+                    onEvent({ inputChannel: i, mode, outputChannel: o });
+                }
             });
         }
     }
 }
 // TODO: add doc
-export function buttonUI(container, onInit, onStop) {
-    const initBtn = el("button");
-    initBtn.textContent = "Start stream";
+export function buttonUI({ container, onInit, onStop }) {
+    const initBtn = el("button", {
+        attr: { textContent: "Activate inputs" }
+    });
     const push = mnt(container);
     push(initBtn);
-    const stopBtn = el("button");
-    stopBtn.textContent = "Stop stream";
     lstn(initBtn)
         .on("click")
         .do(() => {
         onInit();
         umnt(initBtn);
         push(stopBtn);
+    });
+    const stopBtn = el("button", {
+        attr: { textContent: "Deactivate" }
     });
     lstn(stopBtn)
         .on("click")

@@ -2,7 +2,7 @@ server {
     listen {{port}};
     server_name {{location}};
 
-    location /upload {
+    location ~ "^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}" {
         proxy_pass {{sludge_location}};
         proxy_set_header Host      $host;
         proxy_set_header X-Real-IP $remote_addr;

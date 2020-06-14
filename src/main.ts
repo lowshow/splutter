@@ -1,15 +1,9 @@
 import { segmentBuffer, Buffer } from "./buffer.js"
 import { encodeOgg } from "./encode.js"
 import { uploadTo, Upload } from "./upload.js"
-import { VF, F } from "./common/interfaces.js"
-import {
-    Processor,
-    StateFns,
-    initState,
-    State,
-    GetStateFn,
-    UpdateStateFn
-} from "./state.js"
+import { VF, F, State, Processor, SFn } from "./interfaces.js"
+import { initState, GetStateFn, UpdateStateFn } from "./state.js"
+import { loadStorage } from "./storage.js"
 
 // TODO: add docs
 declare global {
@@ -25,8 +19,8 @@ interface ListenFnArgs {
 }
 
 interface SendFnArgs extends ListenFnArgs {
-    getState: GetStateFn
-    updateState: UpdateStateFn
+    getState: GetStateFn<State>
+    updateState: UpdateStateFn<State>
 }
 
 type Mute = {
@@ -34,8 +28,8 @@ type Mute = {
 }
 
 interface ActivateFnArgs {
-    getState: GetStateFn
-    updateState: UpdateStateFn
+    getState: GetStateFn<State>
+    updateState: UpdateStateFn<State>
     channel: number
 }
 
@@ -51,27 +45,30 @@ export interface Main {
     outChannels: F<number>
     activate: (channel: number) => Deactivate
     listen: (args: Omit<ListenFnArgs, "getState">) => Mute
+    state: SFn
 }
 
 // TODO: add doc
 type EncoderFn = (segment: Float32Array) => Promise<void>
-
+type EncoderFnGen = (channel: number) => EncoderFn
 // TODO: add doc
 interface EncodeUpload {
-    encode: EncoderFn
+    encode: EncoderFnGen
 }
 
 // TODO: add doc
-function encodeUpload(sampleRate: number, streamAlias: string): EncodeUpload {
+function encodeUpload(state: SFn): EncodeUpload {
     const encoder: (
         arrayBuffer: Float32Array
-    ) => Promise<Uint8Array> = encodeOgg(sampleRate)
+    ) => Promise<Uint8Array> = encodeOgg(state.getState().sampleRate)
 
-    const { upload }: Upload = uploadTo(streamAlias)
+    const { upload }: Upload = uploadTo(state)
 
     return {
-        encode: async (segment: Float32Array): Promise<void> => {
-            upload(await encoder(segment))
+        encode: (channel: number): EncoderFn => async (
+            segment: Float32Array
+        ): Promise<void> => {
+            upload({ data: await encoder(segment), channel })
         }
     }
 }
@@ -270,7 +267,7 @@ async function initRecording({
 }
 
 // TODO: add doc
-export async function main(streamAlias: string, onGetAudio: VF): Promise<Main> {
+export async function main(onGetAudio: VF): Promise<Main> {
     if (!navigator.mediaDevices) {
         // TODO: display this kind of error in UI
         throw Error("No media devices, recording improbable.")
@@ -283,15 +280,22 @@ export async function main(streamAlias: string, onGetAudio: VF): Promise<Main> {
     ctx.destination.channelCount = ctx.destination.maxChannelCount
     ctx.destination.channelInterpretation = "discrete"
 
-    const { encode }: EncodeUpload = encodeUpload(ctx.sampleRate, streamAlias)
-
-    const { getState, updateState }: StateFns = initState({
+    const state: SFn = initState<State>({
         tracks: [],
         source: [],
         merger: [],
         processors: [],
-        connections: []
+        connections: [],
+        streams: [],
+        streamsInUse: {},
+        sampleRate: ctx.sampleRate
     })
+
+    const { getState, updateState }: SFn = state
+
+    const { encode }: EncodeUpload = encodeUpload(state)
+
+    loadStorage({ state })
 
     async function handleInput(stream: MediaStream): Promise<void> {
         const tracks: MediaStreamTrack[] = []
@@ -307,7 +311,7 @@ export async function main(streamAlias: string, onGetAudio: VF): Promise<Main> {
         const processors: Processor[] = []
         const connections: number[][] = []
         for (let i: number = 0; i < source[0].channelCount; i++) {
-            processors[i] = streamProcesser(ctx, encode)
+            processors[i] = streamProcesser(ctx, encode(i))
             connections[i] = []
             splitter.connect(processors[i].input, i, 0)
         }
@@ -325,6 +329,7 @@ export async function main(streamAlias: string, onGetAudio: VF): Promise<Main> {
     }
 
     return {
+        state,
         record: (): Promise<void> => initRecording({ ctx, handleInput }),
         end: (): void => {
             const { processors, tracks }: State = getState()

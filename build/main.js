@@ -2,13 +2,14 @@ import { segmentBuffer } from "./buffer.js";
 import { encodeOgg } from "./encode.js";
 import { uploadTo } from "./upload.js";
 import { initState } from "./state.js";
+import { loadStorage } from "./storage.js";
 // TODO: add doc
-function encodeUpload(sampleRate, streamAlias) {
-    const encoder = encodeOgg(sampleRate);
-    const { upload } = uploadTo(streamAlias);
+function encodeUpload(state) {
+    const encoder = encodeOgg(state.getState().sampleRate);
+    const { upload } = uploadTo(state);
     return {
-        encode: async (segment) => {
-            upload(await encoder(segment));
+        encode: (channel) => async (segment) => {
+            upload({ data: await encoder(segment), channel });
         }
     };
 }
@@ -152,7 +153,7 @@ async function initRecording({ ctx, handleInput }) {
     });
 }
 // TODO: add doc
-export async function main(streamAlias, onGetAudio) {
+export async function main(onGetAudio) {
     if (!navigator.mediaDevices) {
         // TODO: display this kind of error in UI
         throw Error("No media devices, recording improbable.");
@@ -162,14 +163,19 @@ export async function main(streamAlias, onGetAudio) {
     ctx.suspend();
     ctx.destination.channelCount = ctx.destination.maxChannelCount;
     ctx.destination.channelInterpretation = "discrete";
-    const { encode } = encodeUpload(ctx.sampleRate, streamAlias);
-    const { getState, updateState } = initState({
+    const state = initState({
         tracks: [],
         source: [],
         merger: [],
         processors: [],
-        connections: []
+        connections: [],
+        streams: [],
+        streamsInUse: {},
+        sampleRate: ctx.sampleRate
     });
+    const { getState, updateState } = state;
+    const { encode } = encodeUpload(state);
+    loadStorage({ state });
     async function handleInput(stream) {
         const tracks = [];
         stream.getAudioTracks().forEach((track) => {
@@ -182,7 +188,7 @@ export async function main(streamAlias, onGetAudio) {
         const processors = [];
         const connections = [];
         for (let i = 0; i < source[0].channelCount; i++) {
-            processors[i] = streamProcesser(ctx, encode);
+            processors[i] = streamProcesser(ctx, encode(i));
             connections[i] = [];
             splitter.connect(processors[i].input, i, 0);
         }
@@ -199,6 +205,7 @@ export async function main(streamAlias, onGetAudio) {
         onGetAudio();
     }
     return {
+        state,
         record: () => initRecording({ ctx, handleInput }),
         end: () => {
             const { processors, tracks } = getState();

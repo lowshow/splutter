@@ -1,40 +1,53 @@
-import { VF, F } from "./common/interfaces"
+import { Fn } from "./interfaces"
 
-// TODO: add doc
-export interface State {
-    tracks: MediaStreamTrack[]
-    source: MediaStreamAudioSourceNode[]
-    merger: ChannelMergerNode[]
-    processors: Processor[]
-    connections: number[][]
+export type UpdateStateFn<T> = (args: Partial<T>) => void
+
+export type GetStateFn<T> = () => T
+
+type UnsubscribeStateFn = Fn<void, void>
+
+type SubscribeStateFn<T> = (fn: Fn<T, void>) => UnsubscribeStateFn
+
+export interface StateFns<T> {
+    getState: GetStateFn<T>
+    updateState: UpdateStateFn<T>
+    subscribe: SubscribeStateFn<T>
 }
 
-// TODO: add doc
-export interface Processor {
-    output: AudioNode
-    stopRec: VF
-    input: AudioNode
-    startRec: VF
-    outOn: VF
-    outOff: VF
-    outputting: F<boolean>
-    recording: F<boolean>
-}
-
-export type UpdateStateFn = (args: Partial<State>) => void
-
-export type GetStateFn = () => State
-
-export interface StateFns {
-    getState: GetStateFn
-    updateState: UpdateStateFn
-}
-
-export function initState(state: State): StateFns {
+export function initState<T>(state: T): StateFns<T> {
+    const subscribers: Fn<T, void>[] = []
+    const deadFn = (): void => {}
     return {
-        getState: (): State => state,
-        updateState: (newState: Partial<State>): void => {
-            state = { ...state, ...newState }
+        getState: (): T => state,
+        updateState: (newState: Partial<T>): void => {
+            const oldState: T = JSON.parse(JSON.stringify(state))
+            Object.assign(state, newState)
+            subscribers.forEach((sub: Fn<T, void>): void => sub(oldState))
+        },
+        subscribe: (fn: Fn<T, void>): UnsubscribeStateFn => {
+            subscribers.push(fn)
+            const index: number = subscribers.length
+            return (): void => {
+                subscribers[index] = deadFn
+            }
+        }
+    }
+}
+
+export function onDiff<T, U>({
+    current,
+    previous,
+    selector
+}: {
+    previous: T
+    current: T
+    selector: (state: T) => U
+}): { do: Fn<Fn<U, void>, void> } {
+    return {
+        do: (fn: Fn<U, void>): void => {
+            const curr: U = selector(current)
+            if (JSON.stringify(selector(previous)) !== JSON.stringify(curr))
+                fn(curr)
         }
     }
 }
