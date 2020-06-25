@@ -1,0 +1,23 @@
+server {
+    listen                              {{port}};
+    server_name                         {{server_name}};
+
+    location ~ "^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}" {
+        proxy_pass                      http://127.0.0.1:{{sludge_port}};
+        proxy_set_header Host           $host;
+        proxy_set_header X-Real-IP      $remote_addr;
+    }
+
+    location /vendor {
+        alias                           {{project_path}}/node_modules/opus-recorder/dist;
+    }
+
+    location /static {
+        alias                           {{project_path}}/build;
+    }
+
+    location / {
+        root                            {{project_path}}/public;
+        try_files                       $uri $uri/ index.html;
+    }
+}

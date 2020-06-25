@@ -1,4 +1,4 @@
-import { VF, F } from "./common/interfaces"
+import { VF, F } from "./interfaces.js"
 
 // TODO: add doc
 export interface Buffer {
