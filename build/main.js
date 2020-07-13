@@ -163,7 +163,8 @@ export async function main(onGetAudio) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const ctx = new Ctx();
     ctx.suspend();
-    ctx.destination.channelCount = ctx.destination.maxChannelCount;
+    if (ctx.destination.maxChannelCount > ctx.destination.channelCount)
+        ctx.destination.channelCount = ctx.destination.maxChannelCount;
     ctx.destination.channelInterpretation = "discrete";
     const state = initState({
         tracks: [],

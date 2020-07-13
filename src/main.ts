@@ -281,7 +281,8 @@ export async function main(onGetAudio: VF): Promise<Main> {
         window.AudioContext || window.webkitAudioContext
     const ctx: AudioContext = new Ctx()
     ctx.suspend()
-    ctx.destination.channelCount = ctx.destination.maxChannelCount
+    if (ctx.destination.maxChannelCount > ctx.destination.channelCount)
+        ctx.destination.channelCount = ctx.destination.maxChannelCount
     ctx.destination.channelInterpretation = "discrete"
 
     const state: SFn = initState<State>({

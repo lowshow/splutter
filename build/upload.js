@@ -6,7 +6,10 @@ export function uploadTo({ getState }) {
             const formData = new FormData();
             const file = new File([new Blob([data])], new Date().toISOString() + ".opus");
             formData.append("audio", file);
-            for (const stream of streamingSel(getState())[channel]) {
+            const streams = streamingSel(getState())[channel];
+            if (!streams || !streams.length)
+                return;
+            for (const stream of streams) {
                 fetch(stream, {
                     method: "POST",
                     body: formData

@@ -25,7 +25,10 @@ export function uploadTo({ getState }: SFn): Upload {
 
             formData.append("audio", file)
 
-            for (const stream of streamingSel(getState())[channel]) {
+            const streams: string[] = streamingSel(getState())[channel]
+            if (!streams || !streams.length) return
+
+            for (const stream of streams) {
                 fetch(stream, {
                     method: "POST",
                     body: formData
