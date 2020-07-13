@@ -98,6 +98,8 @@ function streamProcesser(ctx: AudioContext, encode: EncoderFn): Processor {
         output: false
     }
 
+    const emptyBuffer: Float32Array = new Float32Array(bufferSize)
+
     recorder.onaudioprocess = (event: AudioProcessingEvent): void => {
         /**
          * chrome and safari reuse the buffer, so it needs to be copied
@@ -108,7 +110,9 @@ function streamProcesser(ctx: AudioContext, encode: EncoderFn): Processor {
 
         if (isRunning()) feed(data)
 
-        if (state.output) event.outputBuffer.getChannelData(0).set(data)
+        event.outputBuffer
+            .getChannelData(0)
+            .set(state.output ? data : emptyBuffer)
     }
 
     return {
@@ -277,7 +281,8 @@ export async function main(onGetAudio: VF): Promise<Main> {
         window.AudioContext || window.webkitAudioContext
     const ctx: AudioContext = new Ctx()
     ctx.suspend()
-    ctx.destination.channelCount = ctx.destination.maxChannelCount
+    if (ctx.destination.maxChannelCount > ctx.destination.channelCount)
+        ctx.destination.channelCount = ctx.destination.maxChannelCount
     ctx.destination.channelInterpretation = "discrete"
 
     const state: SFn = initState<State>({
