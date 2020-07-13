@@ -98,6 +98,8 @@ function streamProcesser(ctx: AudioContext, encode: EncoderFn): Processor {
         output: false
     }
 
+    const emptyBuffer: Float32Array = new Float32Array(bufferSize)
+
     recorder.onaudioprocess = (event: AudioProcessingEvent): void => {
         /**
          * chrome and safari reuse the buffer, so it needs to be copied
@@ -108,7 +110,9 @@ function streamProcesser(ctx: AudioContext, encode: EncoderFn): Processor {
 
         if (isRunning()) feed(data)
 
-        if (state.output) event.outputBuffer.getChannelData(0).set(data)
+        event.outputBuffer
+            .getChannelData(0)
+            .set(state.output ? data : emptyBuffer)
     }
 
     return {

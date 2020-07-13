@@ -26,6 +26,7 @@ function streamProcesser(ctx, encode) {
     const state = {
         output: false
     };
+    const emptyBuffer = new Float32Array(bufferSize);
     recorder.onaudioprocess = (event) => {
         /**
          * chrome and safari reuse the buffer, so it needs to be copied
@@ -33,8 +34,9 @@ function streamProcesser(ctx, encode) {
         const data = Float32Array.from(event.inputBuffer.getChannelData(0));
         if (isRunning())
             feed(data);
-        if (state.output)
-            event.outputBuffer.getChannelData(0).set(data);
+        event.outputBuffer
+            .getChannelData(0)
+            .set(state.output ? data : emptyBuffer);
     };
     return {
         output: recorder,
