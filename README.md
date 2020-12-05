@@ -25,11 +25,11 @@ NOTE: You will need to provide values for these variables
 
 **Nginx port**
 
-This is the port from which the nginx proxy server for sludge will run
+This is the port from which the nginx proxy server for splutter will run
 
 **Service hostname**
 
-This is the base URL hostname where sludge will be accessed
+This is the base URL hostname where splutter will be accessed
 
 **Additional hostnames**
 
@@ -39,3 +39,9 @@ More hostnames (not required)
 
 Port of the sludge deno app
 
+#### Dev
+
+```shell
+npm i
+npm run dev
+```
