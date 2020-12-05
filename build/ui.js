@@ -106,7 +106,9 @@ export async function recorderUI({ container, inputCount, onEvent, outputCount, 
             attr: { className: "item__wrap item__grey" }
         });
         mnt(container)(mnt(el("div", { attr: { className: "item__row" } }))([
-            select,
+            mnt(el("div", { attr: { className: "select__wrap" } }))([
+                select,
+            ]),
             inputWrap,
             outputWrap
         ]));
