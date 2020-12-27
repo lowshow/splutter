@@ -1,21 +1,26 @@
 {
-  "name": "splutter",
-  "version": "0.1.0",
-  "description": "experimental tool to stream-record audio in compressed segments and send them to a sludge server",
-  "main": "index.js",
-  "scripts": {
-    "dev": "./node_modules/.bin/tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "prettier": "^2.0.4",
-    "tslint": "^6.1.1",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.8.3"
-  },
-  "dependencies": {
-    "opus-recorder": "^6.1.1"
-  }
+	"name": "splutter",
+	"version": "0.2.0",
+	"description": "experimental tool to stream-record audio in compressed segments and send them to a sludge server",
+	"main": "index.js",
+	"scripts": {
+		"start": "snowpack dev",
+		"build": "snowpack build",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"lint": "eslint . --ext .js,.ts",
+		"lint-fix": "eslint . --ext .js,.ts --fix"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"opus-recorder": "^6.1.1"
+	},
+	"devDependencies": {
+		"@snowpack/plugin-run-script": "^2.1.0",
+		"@typescript-eslint/eslint-plugin": "^4.2.0",
+		"@typescript-eslint/parser": "^4.2.0",
+		"eslint": "^7.9.0",
+		"snowpack": "^2.8.0",
+		"typescript": "^4.0.3"
+	}
 }

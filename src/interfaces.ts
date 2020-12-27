@@ -1,10 +1,10 @@
-import { StateFns } from "./state"
+import type { StateFns } from "./state"
 
 // TODO: add doc
-export type Resolve<T> = (value?: T | PromiseLike<T> | undefined) => void
+export type Resolve<T> = ( value?: T | PromiseLike<T> | undefined ) => void
 
 // TODO: add doc
-export type Reject = (reason?: any) => void
+export type Reject = ( reason?: any ) => void
 
 // TODO: add doc
 export type Maybe<T> = T | void
@@ -15,7 +15,7 @@ export type ValueOf<T> = T[keyof T]
 // TODO: add doc
 export type StringObject = { [index: string]: string }
 
-export type Fn<I, O> = (_: I) => O
+export type Fn<I, O> = ( _: I ) => O
 
 export type F<T> = Fn<void, T>
 
