@@ -1,0 +1,105 @@
+{
+  "inputs": {
+    "channel.js": {
+      "bytes": 2000,
+      "imports": []
+    },
+    "audio.js": {
+      "bytes": 4947,
+      "imports": [
+        {
+          "path": "channel.js"
+        }
+      ]
+    },
+    "bufferManager.js": {
+      "bytes": 527,
+      "imports": []
+    },
+    "device.js": {
+      "bytes": 2693,
+      "imports": []
+    },
+    "__snowpack__/env.js": {
+      "bytes": 73,
+      "imports": []
+    },
+    "encode.js": {
+      "bytes": 4774,
+      "imports": [
+        {
+          "path": "__snowpack__/env.js"
+        }
+      ]
+    },
+    "segmentBufferGenerator.js": {
+      "bytes": 3870,
+      "imports": []
+    },
+    "upload.js": {
+      "bytes": 3858,
+      "imports": []
+    },
+    "splutter.js": {
+      "bytes": 3159,
+      "imports": [
+        {
+          "path": "audio.js"
+        },
+        {
+          "path": "bufferManager.js"
+        },
+        {
+          "path": "device.js"
+        },
+        {
+          "path": "encode.js"
+        },
+        {
+          "path": "segmentBufferGenerator.js"
+        },
+        {
+          "path": "upload.js"
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "../node_modules/.cache/snowpack/~~bundle~~/splutter.js": {
+      "imports": [],
+      "exports": [
+        "Splutter"
+      ],
+      "inputs": {
+        "channel.js": {
+          "bytesInOutput": 1285
+        },
+        "audio.js": {
+          "bytesInOutput": 3220
+        },
+        "bufferManager.js": {
+          "bytesInOutput": 313
+        },
+        "device.js": {
+          "bytesInOutput": 1660
+        },
+        "__snowpack__/env.js": {
+          "bytesInOutput": 51
+        },
+        "encode.js": {
+          "bytesInOutput": 3117
+        },
+        "segmentBufferGenerator.js": {
+          "bytesInOutput": 2658
+        },
+        "upload.js": {
+          "bytesInOutput": 2339
+        },
+        "splutter.js": {
+          "bytesInOutput": 2053
+        }
+      },
+      "bytes": 16726
+    }
+  }
+}

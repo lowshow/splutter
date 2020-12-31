@@ -1,0 +1,3 @@
+[submodule "modules/opus-recorder"]
+	path = modules/opus-recorder
+	url = git@github.com:gaxge/opus-recorder.git

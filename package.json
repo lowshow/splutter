@@ -1,21 +1,43 @@
 {
-  "name": "splutter",
-  "version": "0.1.0",
-  "description": "experimental tool to stream-record audio in compressed segments and send them to a sludge server",
-  "main": "index.js",
-  "scripts": {
-    "dev": "./node_modules/.bin/tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "prettier": "^2.0.4",
-    "tslint": "^6.1.1",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.8.3"
-  },
-  "dependencies": {
-    "opus-recorder": "^6.1.1"
-  }
+	"name": "splutter",
+	"version": "0.3.0",
+	"description": "record audio in compressed segments and stream them to a 'sludge' server",
+	"main": "build/splutter.js",
+	"scripts": {
+		"start": "npm run snowpack:dev",
+		"build": "npm run snowpack:build && npm run copy:worker",
+		"copy:worker": "cp modules/opus-recorder/dist/encoderWorker.min.js build/",
+		"snowpack:dev": "snowpack dev",
+		"snowpack:build": "snowpack build",
+		"lint": "eslint . --ext .js,.ts",
+		"lint:fix": "eslint . --ext .js,.ts --fix",
+		"example:build": "tsc --build example/tsconfig.json",
+		"example:serve": "node example/server",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": {
+		"name": "DROHEN",
+		"url": "https://github.com/drohen",
+		"email": "email@drohen.com"
+	},
+	"bugs": {
+		"email": "email@drohen.com",
+		"url": "https://github.com/gaxge/splutter/issues"
+	},
+	"repository": {
+		"url": "https://github.com/gaxge/splutter.git"
+	},
+	"homepage": "https://github.com/gaxge/splutter",
+	"types": "build/splutter.d.ts",
+	"license": "MIT",
+	"devDependencies": {
+		"@snowpack/plugin-run-script": "^2.1.0",
+		"@typescript-eslint/eslint-plugin": "^4.2.0",
+		"@typescript-eslint/parser": "^4.2.0",
+		"eslint": "^7.9.0",
+		"express": "^4.17.1",
+		"multer": "^1.4.2",
+		"snowpack": "^2.8.0",
+		"typescript": "^4.0.3"
+	}
 }
