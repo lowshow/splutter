@@ -1,6 +1,6 @@
 {
 	"name": "splutter",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "record audio in compressed segments and stream them to a 'sludge' server",
 	"main": "build/splutter.js",
 	"scripts": {
