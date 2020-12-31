@@ -135,7 +135,7 @@ class App implements SplutterContextInterface
 		{
 			if ( outputButton.dataset.state === `inactive` )
 			{
-				this.splutter.unmuteOutputChannelForInputInput( inputChannel, outputChannel )
+				this.splutter.unmuteOutputChannelForInputChannel( inputChannel, outputChannel )
 
 				outputButton.dataset.state = `active`
 
@@ -188,11 +188,6 @@ class App implements SplutterContextInterface
 		this.channels.innerHTML = ``
 
 		this.info.textContent = ``
-	}
-
-	public preloadData(): void
-	{
-		// returns data from storage, not implemented
 	}
 
 	public onWarning( message: string | Error | ErrorEvent ): void

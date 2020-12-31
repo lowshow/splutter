@@ -25,7 +25,7 @@
       "imports": []
     },
     "encode.js": {
-      "bytes": 4774,
+      "bytes": 4782,
       "imports": [
         {
           "path": "__snowpack__/env.js"
@@ -41,7 +41,7 @@
       "imports": []
     },
     "splutter.js": {
-      "bytes": 3159,
+      "bytes": 3161,
       "imports": [
         {
           "path": "audio.js"
@@ -87,7 +87,7 @@
           "bytesInOutput": 51
         },
         "encode.js": {
-          "bytesInOutput": 3117
+          "bytesInOutput": 3125
         },
         "segmentBufferGenerator.js": {
           "bytesInOutput": 2658
@@ -96,10 +96,10 @@
           "bytesInOutput": 2339
         },
         "splutter.js": {
-          "bytesInOutput": 2053
+          "bytesInOutput": 2055
         }
       },
-      "bytes": 16726
+      "bytes": 16736
     }
   }
 }

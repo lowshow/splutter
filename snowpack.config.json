@@ -1,6 +1,7 @@
 {
 	"mount": {
-		"src": "/"
+		"src": "/",
+		"modules/opus-recorder/dist/encoder": "/encoder"
 	},
 	"buildOptions": {
 		"installTypes": true

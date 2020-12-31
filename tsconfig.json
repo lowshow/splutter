@@ -11,7 +11,7 @@
 		"noEmit": false,
 		/* Additional Options */
 		"strict": true,
-		"skipLibCheck": true,
+		// "skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"useDefineForClassFields": true,
 		// You can't currently define paths in your 'extends' config,

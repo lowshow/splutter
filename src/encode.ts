@@ -96,7 +96,7 @@ export class Encoder implements SegmentHandler
 
 		this.encoding = -1
 
-		this.encodeWorker = new Worker( new URL( `encoderWorker.min.js`, import.meta.url ), {
+		this.encodeWorker = new Worker( new URL( `encoder/encoderWorker.min.js`, import.meta.url ), {
 			name: `encode-worker`,
 			type: `module`,
 		} )

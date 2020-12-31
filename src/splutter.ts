@@ -15,9 +15,6 @@ extends
 	EncoderErrorHandler,
 	UploaderErrorHandler
 {
-	// enable fetching of existing state
-	preloadData: () => void
-
 	onWarning: ( message: string | Error | ErrorEvent ) => void
 
 	onFailure: ( error: Error ) => void
@@ -151,7 +148,7 @@ implements
 		this.audio.muteOutputForInput( input, output )
 	}
 
-	public unmuteOutputChannelForInputInput( input: number, output: number ): void
+	public unmuteOutputChannelForInputChannel( input: number, output: number ): void
 	{
 		this.audio.unmuteOutputForInput( input, output )
 	}
